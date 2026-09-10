@@ -5,7 +5,7 @@
 [![CI](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml)
 [![Tests](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml)
 [![Coverage](https://github.com/tigusigalpa/coinglass-php/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/coverage.yml)
-[![CodeQL](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml)
+[![CodeQL Actions](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml)
 [![Codecov](https://codecov.io/gh/tigusigalpa/coinglass-php/graph/badge.svg)](https://codecov.io/gh/tigusigalpa/coinglass-php)
 [![Latest Stable Version](https://poser.pugx.org/tigusigalpa/coinglass-php/v)](https://packagist.org/packages/tigusigalpa/coinglass-php)
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=flat-square&logo=php)](https://www.php.net/)

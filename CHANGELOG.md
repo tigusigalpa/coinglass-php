@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Added the remaining upstream query filters already supported by `coinglass-go`: time ranges on historical Futures,
   Options, Spot, and Indicator endpoints; exchange filters; interval filters for arbitrage and whale alerts; and a
   `whaleAlert()` method with the upstream name. Existing method signatures remain compatible.
-- Added GitHub Actions CI, a focused tests workflow, PCOV coverage artifacts/Codecov upload, CodeQL security scans,
+- Added GitHub Actions CI, a focused tests workflow, PCOV coverage artifacts/Codecov upload, CodeQL scanning for GitHub Actions workflows,
   and Dependabot checks for Composer and workflow dependencies.
 
 - **WebSocket API support** for Coinglass's real-time streams, under the new `Tigusigalpa\CoinGlass\WebSocket`
