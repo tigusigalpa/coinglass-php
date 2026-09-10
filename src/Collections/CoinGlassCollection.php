@@ -8,6 +8,7 @@ use ArrayAccess;
 use ArrayIterator;
 use Countable;
 use IteratorAggregate;
+use LogicException;
 use Tigusigalpa\CoinGlass\Dto\CoinGlassDto;
 use Traversable;
 
@@ -122,15 +123,11 @@ final class CoinGlassCollection implements IteratorAggregate, Countable, ArrayAc
 
     public function offsetSet(mixed $offset, mixed $value): void
     {
-        if ($offset === null) {
-            $this->items[] = $value;
-        } else {
-            $this->items[$offset] = $value;
-        }
+        throw new LogicException('CoinGlassCollection is immutable.');
     }
 
     public function offsetUnset(mixed $offset): void
     {
-        unset($this->items[$offset]);
+        throw new LogicException('CoinGlassCollection is immutable.');
     }
 }

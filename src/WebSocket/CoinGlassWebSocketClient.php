@@ -34,6 +34,9 @@ final class CoinGlassWebSocketClient
      */
     private const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
+    /** Maximum total size of the HTTP upgrade response headers. */
+    private const MAX_HANDSHAKE_HEADER_SIZE = 16_384;
+
     public function __construct(private readonly CoinGlassWebSocketConfig $config)
     {
     }
@@ -62,7 +65,7 @@ final class CoinGlassWebSocketClient
             throw new WebSocketException("Invalid Coinglass WebSocket base URL: {$this->config->baseUrl}");
         }
 
-        $scheme = $parsed['scheme'];
+        $scheme = strtolower($parsed['scheme']);
         if (!in_array($scheme, ['ws', 'wss'], true)) {
             throw new WebSocketException("Unsupported WebSocket scheme: {$scheme}");
         }
@@ -79,7 +82,7 @@ final class CoinGlassWebSocketClient
             throw new WebSocketException("Failed to connect to the Coinglass WebSocket API: {$errstr} ({$errno})");
         }
 
-        stream_set_timeout($socket, (int) max(1, $this->config->connectTimeout));
+        self::setTimeout($socket, $this->config->connectTimeout);
 
         $queryParams = [];
         if (isset($parsed['query'])) {
@@ -90,33 +93,54 @@ final class CoinGlassWebSocketClient
         $path = ($parsed['path'] ?? '/') . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
         $key = base64_encode(random_bytes(16));
 
+        $host = $parsed['host'];
+        $defaultPort = $scheme === 'wss' ? 443 : 80;
+        if (isset($parsed['port']) && $parsed['port'] !== $defaultPort) {
+            $host .= ':' . $parsed['port'];
+        }
+
         $request = "GET {$path} HTTP/1.1\r\n"
-            . "Host: {$parsed['host']}\r\n"
+            . "Host: {$host}\r\n"
             . "Upgrade: websocket\r\n"
             . "Connection: Upgrade\r\n"
             . "Sec-WebSocket-Key: {$key}\r\n"
             . "Sec-WebSocket-Version: 13\r\n"
             . "\r\n";
 
-        if (fwrite($socket, $request) === false) {
+        try {
+            self::writeAll($socket, $request);
+        } catch (WebSocketException) {
             fclose($socket);
             throw new WebSocketException('Failed to send the WebSocket handshake request.');
         }
 
         $statusLine = fgets($socket);
-        if ($statusLine === false || !str_contains($statusLine, ' 101 ')) {
+        if ($statusLine === false || preg_match('/^HTTP\/\d\.\d 101(?:\s|$)/', $statusLine) !== 1) {
             fclose($socket);
             throw new WebSocketException('Coinglass WebSocket handshake failed: ' . trim((string) $statusLine));
         }
 
         $headers = [];
+        $headerSize = strlen($statusLine);
         while (($line = fgets($socket)) !== false) {
+            $headerSize += strlen($line);
+            if ($headerSize > self::MAX_HANDSHAKE_HEADER_SIZE) {
+                fclose($socket);
+                throw new WebSocketException('Coinglass WebSocket handshake failed: response headers are too large.');
+            }
+
             $line = trim($line);
             if ($line === '') {
                 break;
             }
             [$name, $value] = array_pad(array_map('trim', explode(':', $line, 2)), 2, '');
-            $headers[strtolower($name)] = $value;
+            $name = strtolower($name);
+            $headers[$name] = isset($headers[$name]) ? $headers[$name] . ',' . $value : $value;
+        }
+
+        if (!isset($headers['upgrade']) || strcasecmp($headers['upgrade'], 'websocket') !== 0 || !self::headerHasToken($headers['connection'] ?? '', 'upgrade')) {
+            fclose($socket);
+            throw new WebSocketException('Coinglass WebSocket handshake failed: invalid upgrade response headers.');
         }
 
         $expectedAccept = base64_encode(sha1($key . self::GUID, true));
@@ -125,9 +149,50 @@ final class CoinGlassWebSocketClient
             throw new WebSocketException('Coinglass WebSocket handshake failed: invalid Sec-WebSocket-Accept header.');
         }
 
-        stream_set_timeout($socket, 0);
+        self::setTimeout($socket, 0.0);
         stream_set_blocking($socket, true);
 
         return new CoinGlassStream($socket, $this->config);
+    }
+
+    private static function headerHasToken(string $value, string $token): bool
+    {
+        foreach (explode(',', $value) as $part) {
+            if (strcasecmp(trim($part), $token) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param resource $socket */
+    private static function writeAll($socket, string $data): void
+    {
+        $written = 0;
+        $length = strlen($data);
+
+        while ($written < $length) {
+            $bytes = fwrite($socket, substr($data, $written));
+            if ($bytes === false || $bytes === 0) {
+                throw new WebSocketException('Failed to write to the Coinglass WebSocket connection.');
+            }
+            $written += $bytes;
+        }
+    }
+
+    /** @param resource $socket */
+    private static function setTimeout($socket, float $timeout): void
+    {
+        $timeout = max(0.0, $timeout);
+        $seconds = (int) floor($timeout);
+        $microseconds = (int) round(($timeout - $seconds) * 1_000_000);
+
+        if ($microseconds === 1_000_000) {
+            $seconds++;
+            $microseconds = 0;
+        }
+
+        stream_set_timeout($socket, $seconds, $microseconds);
     }
 }

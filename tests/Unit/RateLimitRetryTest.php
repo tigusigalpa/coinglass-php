@@ -116,4 +116,63 @@ final class RateLimitRetryTest extends TestCase
 
         $client->futures()->supportedCoins();
     }
+
+    public function testFractionalRetryDelayIsNotTruncated(): void
+    {
+        $client = $this->makeClient([
+            new Response(429, [], json_encode(['message' => 'Too many requests'])),
+            new Response(200, [], json_encode(['code' => '0', 'data' => []])),
+        ], retryAttempts: 1, retryDelay: 0.02);
+
+        $startedAt = microtime(true);
+        $client->futures()->supportedCoins();
+
+        self::assertGreaterThanOrEqual(0.015, microtime(true) - $startedAt);
+    }
+
+    public function testRateLimitExceptionParsesHttpDateAndKeepsRawBody(): void
+    {
+        $rawBody = '{"message":"Too many requests"}';
+        $retryAfter = gmdate('D, d M Y H:i:s \\G\\M\\T', time() + 120);
+        $client = $this->makeClient([
+            new Response(429, ['Retry-After' => $retryAfter], $rawBody),
+        ]);
+
+        try {
+            $client->futures()->supportedCoins();
+            self::fail('Expected a rate-limit exception.');
+        } catch (RateLimitException $e) {
+            self::assertSame($rawBody, $e->rawBody);
+            self::assertGreaterThanOrEqual(118, $e->retryAfter);
+            self::assertLessThanOrEqual(120, $e->retryAfter);
+        }
+    }
+
+    public function testApiExceptionKeepsRawNonJsonErrorBody(): void
+    {
+        $client = $this->makeClient([
+            new Response(500, [], 'upstream service unavailable'),
+        ]);
+
+        try {
+            $client->futures()->supportedCoins();
+            self::fail('Expected an API exception.');
+        } catch (ApiException $e) {
+            self::assertSame('upstream service unavailable', $e->rawBody);
+        }
+    }
+
+    public function testRejectsANonObjectSuccessEnvelope(): void
+    {
+        $client = $this->makeClient([
+            new Response(200, [], '[]'),
+        ]);
+
+        try {
+            $client->futures()->supportedCoins();
+            self::fail('Expected an API exception.');
+        } catch (ApiException $e) {
+            self::assertSame('[]', $e->rawBody);
+        }
+    }
 }

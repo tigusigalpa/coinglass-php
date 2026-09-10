@@ -22,11 +22,12 @@ final class SpotResource extends AbstractResource
     }
 
     /** Coins markets. `GET /api/spot/coins-markets`. */
-    public function coinsMarkets(?string $symbol = null, ?int $limit = null): mixed
+    public function coinsMarkets(?string $symbol = null, ?int $limit = null, ?string $exchange = null): mixed
     {
         return $this->request('/api/spot/coins-markets', [
             'symbol' => $symbol,
             'limit' => $limit,
+            'exchange' => $exchange,
         ]);
     }
 
@@ -53,13 +54,15 @@ final class SpotResource extends AbstractResource
     }
 
     /** Orderbook heatmap history. `GET /api/spot/orderbook/history`. */
-    public function orderbookHistory(string $symbol, string $exchange, string $interval, ?int $limit = null): mixed
+    public function orderbookHistory(string $symbol, string $exchange, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/spot/orderbook/history', [
             'symbol' => $symbol,
             'exchange' => $exchange,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 

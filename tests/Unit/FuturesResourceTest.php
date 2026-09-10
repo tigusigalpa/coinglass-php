@@ -102,4 +102,32 @@ final class FuturesResourceTest extends TestCase
         self::assertInstanceOf(CoinGlassDto::class, $result);
         self::assertEqualsWithDelta(50000.0, $result->maxPain, 0.001);
     }
+
+    public function testAdditionalUpstreamQueryParametersAreForwarded(): void
+    {
+        $body = json_encode(['code' => '0', 'data' => []], JSON_THROW_ON_ERROR);
+        $client = $this->makeClient([
+            new Response(200, [], $body),
+            new Response(200, [], $body),
+            new Response(200, [], $body),
+        ]);
+
+        $client->futures()->fundingRateExchangeList('BTC', '1h', 10, 'Binance', 100, 200);
+        $client->indicators()->basisHistory('BTC', '1d', 10, 100, 200);
+        $client->options()->exchangeOiHistory('1d', 10, 100, 200);
+
+        foreach ($this->history as $entry) {
+            /** @var \Psr\Http\Message\RequestInterface $request */
+            $request = $entry['request'];
+            parse_str($request->getUri()->getQuery(), $query);
+
+            self::assertSame('100', $query['startTime']);
+            self::assertSame('200', $query['endTime']);
+        }
+
+        /** @var \Psr\Http\Message\RequestInterface $fundingRequest */
+        $fundingRequest = $this->history[0]['request'];
+        parse_str($fundingRequest->getUri()->getQuery(), $fundingQuery);
+        self::assertSame('Binance', $fundingQuery['exchange']);
+    }
 }

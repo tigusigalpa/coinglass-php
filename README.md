@@ -1,6 +1,16 @@
-# coinglass-php
+# Coinglass PHP/Laravel Client/SDK/Library
 
 ![CoinGlass PHP SDK](https://i.postimg.cc/tJgkghDn/coinglass-php-banner.jpg)
+
+[![CI](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml)
+[![Tests](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml)
+[![Coverage](https://github.com/tigusigalpa/coinglass-php/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/coverage.yml)
+[![CodeQL](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/codeql.yml)
+[![Codecov](https://codecov.io/gh/tigusigalpa/coinglass-php/graph/badge.svg)](https://codecov.io/gh/tigusigalpa/coinglass-php)
+[![Latest Stable Version](https://poser.pugx.org/tigusigalpa/coinglass-php/v)](https://packagist.org/packages/tigusigalpa/coinglass-php)
+[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=flat-square&logo=php)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-10--13-FF2D20?style=flat-square&logo=laravel)](https://laravel.com/)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 > A PHP client for the Coinglass API v4, with first-class Laravel support.
 
@@ -10,11 +20,6 @@ together while building a liquidation dashboard and got tired of hand-rolling Gu
 so it wraps the Futures, Spot, Options, ETF, On-Chain, and Indicator endpoints — plus the real-time WebSocket
 streams — in a typed, PSR-18-friendly client that drops straight into Laravel if you need it, or works standalone
 if you don't.
-
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.1-777bb4?logo=php)](https://www.php.net/)
-[![Laravel](https://img.shields.io/badge/laravel-10%20%7C%2011%20%7C%2012%20%7C%2013-ff2d20?logo=laravel)](https://laravel.com/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](.)
 
 ## Features
 
@@ -37,7 +42,7 @@ if you don't.
 |--------------------|----------------------------------------------------------------|
 | PHP                | 8.1+                                                           |
 | Laravel (optional) | 10.x, 11.x, 12.x, 13.x                                         |
-| HTTP client        | Guzzle `^7.4` (default, PSR-18 swappable)                      |
+| HTTP client        | Guzzle `^7.15.5` (default, PSR-18 swappable)                   |
 | WebSocket API      | `ext-openssl` (for `wss://`; no extra Composer package needed) |
 | Coinglass API key  | [Get one here](https://coinglass.com)                          |
 
@@ -154,15 +159,17 @@ $flows = $client->etf()->bitcoinFlowHistory('1w', 24);
 $fearGreed = $client->indicators()->fearGreedHistory(30);
 ```
 
-Whatever you call, you get back a `Tigusigalpa\CoinGlass\Dto\CoinGlassDto` for a single record or a
-`Tigusigalpa\CoinGlass\Collections\CoinGlassCollection` for a list. Reach for a field however feels natural —
+Record payloads come back as a `Tigusigalpa\CoinGlass\Dto\CoinGlassDto` (single record) or a
+`Tigusigalpa\CoinGlass\Collections\CoinGlassCollection` (list of records); scalar lists and scalar values stay raw.
+Reach for a record field however feels natural —
 property syntax (`$dto->openInterestUsd`), array syntax (`$dto['openInterestUsd']`), or `$dto->get('openInterestUsd')` —
-and if you ever need the untouched payload, it's right there via `$dto->raw` / `$dto->toArray()`.
+and if you ever need the untouched payload, it's right there via `$dto->raw` / `$dto->toArray()`. DTOs and collections
+are immutable.
 
 ## Full API Reference
 
-Every method maps to a single Coinglass endpoint and returns the hydrated `data` payload. Optional parameters are
-marked with `?` below.
+Every method maps to a single Coinglass endpoint and returns its `data` payload, hydrating record-shaped responses.
+Optional parameters are marked with `?` below.
 
 ### Futures — `$client->futures()`
 
@@ -171,47 +178,48 @@ marked with `?` below.
 | `supportedCoins()`                                                              | `GET /futures/supported-coins`                             |
 | `supportedExchangePairs(?exchange)`                                             | `GET /api/futures/supported-exchange-pairs`                |
 | `pairsMarkets(?symbol, ?exchange, ?limit)`                                      | `GET /api/futures/pairs-markets`                           |
-| `coinsMarkets(?symbol, ?limit)`                                                 | `GET /api/futures/coins-markets`                           |
+| `coinsMarkets(?symbol, ?limit, ?exchanges)`                                     | `GET /api/futures/coins-markets`                           |
 | `priceChangeList()`                                                             | `GET /futures/price-change-list`                           |
 | `priceOhlcHistory(symbol, interval, ?limit, ?startTime, ?endTime)`              | `GET /api/price/ohlc-history`                              |
 | `openInterestOhlcHistory(symbol, interval, ?limit, ?startTime, ?endTime)`       | `GET /api/futures/openInterest/ohlc-history`               |
 | `openInterestAggregatedHistory(symbol, interval, ?limit, ?startTime, ?endTime)` | `GET /api/futures/openInterest/ohlc-aggregated-history`    |
-| `openInterestExchangeList(symbol, interval, ?limit, ?exchange)`                 | `GET /api/futures/openInterest/exchange-list`              |
+| `openInterestExchangeList(symbol, interval, ?limit, ?exchange, ?startTime, ?endTime)` | `GET /api/futures/openInterest/exchange-list`        |
 | `fundingRateOhlcHistory(symbol, interval, ?limit, ?startTime, ?endTime)`        | `GET /api/futures/fundingRate/ohlc-history`                |
-| `fundingRateOiWeighted(symbol, interval, ?limit)`                               | `GET /api/futures/fundingRate/oi-weight-ohlc-history`      |
-| `fundingRateExchangeList(symbol, ?interval, ?limit)`                            | `GET /api/futures/fundingRate/exchange-list`               |
-| `fundingRateArbitrage(?symbol, ?limit)`                                         | `GET /api/futures/fundingRate/arbitrage`                   |
-| `longShortAccountRatioHistory(symbol, interval, ?limit, ?exchange)`             | `GET /api/futures/global-long-short-account-ratio/history` |
-| `topLongShortAccountRatio(symbol, interval, ?limit, ?exchange)`                 | `GET /api/futures/top-long-short-account-ratio/history`    |
-| `liquidationHistory(symbol, pair, interval, ?limit)`                            | `GET /api/futures/liquidation/history`                     |
-| `liquidationAggregatedHistory(symbol, interval, ?limit)`                        | `GET /api/futures/liquidation/aggregated-history`          |
+| `fundingRateOiWeighted(symbol, interval, ?limit, ?startTime, ?endTime)`         | `GET /api/futures/fundingRate/oi-weight-ohlc-history`      |
+| `fundingRateExchangeList(symbol, ?interval, ?limit, ?exchange, ?startTime, ?endTime)` | `GET /api/futures/fundingRate/exchange-list`        |
+| `fundingRateArbitrage(?symbol, ?limit, ?interval)`                              | `GET /api/futures/fundingRate/arbitrage`                   |
+| `longShortAccountRatioHistory(symbol, interval, ?limit, ?exchange, ?startTime, ?endTime)` | `GET /api/futures/global-long-short-account-ratio/history` |
+| `topLongShortAccountRatio(symbol, interval, ?limit, ?exchange, ?startTime, ?endTime)` | `GET /api/futures/top-long-short-account-ratio/history` |
+| `liquidationHistory(symbol, pair, interval, ?limit, ?startTime, ?endTime)`      | `GET /api/futures/liquidation/history`                     |
+| `liquidationAggregatedHistory(symbol, interval, ?limit, ?startTime, ?endTime)`  | `GET /api/futures/liquidation/aggregated-history`          |
 | `liquidationCoinList(?symbol, ?limit)`                                          | `GET /api/futures/liquidation/coin-list`                   |
 | `liquidationHeatmap(model, symbol, interval, ?limit)`                           | `GET /api/futures/liquidation/heatmap/model{1,2,3}`        |
 | `liquidationMap(symbol, pair, interval, ?limit)`                                | `GET /api/futures/liquidation/map`                         |
-| `orderbookHistory(symbol, exchange, interval, ?limit)`                          | `GET /api/futures/orderbook/history`                       |
-| `orderbookLargeOrders(symbol, exchange, ?limit)`                                | `GET /api/futures/orderbook/large-limit-order`             |
+| `orderbookHistory(symbol, exchange, interval, ?limit, ?startTime, ?endTime)`    | `GET /api/futures/orderbook/history`                       |
+| `orderbookLargeOrders(symbol, exchange, ?limit, ?interval)`                     | `GET /api/futures/orderbook/large-limit-order`             |
 | `takerBuySellHistory(symbol, exchange, interval, ?limit)`                       | `GET /api/futures/taker-buy-sell-volume/history`           |
-| `whaleBuySellHistory(?symbol, ?limit)`                                          | `GET /api/hyperliquid/whale-alert`                         |
+| `whaleAlert(?symbol, ?interval, ?limit)`                                        | `GET /api/hyperliquid/whale-alert`                         |
+| `whaleBuySellHistory(?symbol, ?limit, ?interval)`                               | Alias for `whaleAlert()`                                   |
 
 ### Spot — `$client->spot()`
 
 | Method                                                         | Endpoint                                      |
 |----------------------------------------------------------------|-----------------------------------------------|
 | `supportedCoins()`                                             | `GET /api/spot/supported-coins`               |
-| `coinsMarkets(?symbol, ?limit)`                                | `GET /api/spot/coins-markets`                 |
+| `coinsMarkets(?symbol, ?limit, ?exchange)`                     | `GET /api/spot/coins-markets`                 |
 | `pairsMarkets(?symbol, ?exchange, ?limit)`                     | `GET /api/spot/pairs-markets`                 |
 | `priceHistory(symbol, interval, ?limit, ?startTime, ?endTime)` | `GET /api/spot/price/history`                 |
-| `orderbookHistory(symbol, exchange, interval, ?limit)`         | `GET /api/spot/orderbook/history`             |
+| `orderbookHistory(symbol, exchange, interval, ?limit, ?startTime, ?endTime)` | `GET /api/spot/orderbook/history`    |
 | `takerBuySellHistory(symbol, exchange, interval, ?limit)`      | `GET /api/spot/taker-buy-sell-volume/history` |
 
 ### Options — `$client->options()`
 
 | Method                                 | Endpoint                               |
 |----------------------------------------|----------------------------------------|
-| `maxPain(underlying, ?expiry)`         | `GET /api/option/max-pain`             |
-| `info(underlying, ?expiry)`            | `GET /api/option/info`                 |
-| `exchangeOiHistory(interval, ?limit)`  | `GET /api/option/exchange-oi-history`  |
-| `exchangeVolHistory(interval, ?limit)` | `GET /api/option/exchange-vol-history` |
+| `maxPain(underlying, ?expiry, ?interval)`         | `GET /api/option/max-pain`             |
+| `info(underlying, ?expiry, ?interval)`            | `GET /api/option/info`                 |
+| `exchangeOiHistory(interval, ?limit, ?startTime, ?endTime)`  | `GET /api/option/exchange-oi-history`  |
+| `exchangeVolHistory(interval, ?limit, ?startTime, ?endTime)` | `GET /api/option/exchange-vol-history` |
 
 ### ETF — `$client->etf()`
 
@@ -238,11 +246,11 @@ marked with `?` below.
 |------------------------------------------|-----------------------------------------------|
 | `fearGreedHistory(?limit)`               | `GET /api/index/fear-greed-history`           |
 | `rsiList(?symbol, ?interval, ?limit)`    | `GET /api/futures/rsi/list`                   |
-| `basisHistory(symbol, interval, ?limit)` | `GET /api/futures/basis/history`              |
-| `coinbasePremiumIndex(?limit)`           | `GET /api/coinbase-premium-index`             |
+| `basisHistory(symbol, interval, ?limit, ?startTime, ?endTime)` | `GET /api/futures/basis/history`           |
+| `coinbasePremiumIndex(?limit, ?startTime, ?endTime)`           | `GET /api/coinbase-premium-index`          |
 | `bitcoinRainbowChart()`                  | `GET /api/index/bitcoin/rainbow-chart`        |
 | `stockToFlow()`                          | `GET /api/index/stock-flow`                   |
-| `stablecoinMarketCap(?limit)`            | `GET /api/index/stableCoin-marketCap-history` |
+| `stablecoinMarketCap(?limit, ?startTime, ?endTime)`            | `GET /api/index/stableCoin-marketCap-history` |
 
 ## WebSocket API
 
@@ -329,7 +337,7 @@ try {
     // Endpoint/resource not found
 } catch (ApiException $e) {
     // Any other non-2xx response or non-zero envelope code
-    // $e->statusCode, $e->apiCode, $e->responseBody are all available
+    // $e->statusCode, $e->apiCode, $e->responseBody, $e->rawBody are all available
 }
 ```
 
@@ -356,6 +364,7 @@ vendor/bin/phpunit
 
 The suite leans on Guzzle's `MockHandler` for the HTTP-layer unit tests and Orchestra Testbench for the Laravel
 integration tests, so it runs without ever touching the real Coinglass API.
+The same lint and test checks run on PHP 8.1–8.4 for every push and pull request.
 
 ## License
 

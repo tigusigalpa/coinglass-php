@@ -19,6 +19,7 @@ class ApiException extends CoinGlassException
      * @param array<string, mixed> $responseBody Decoded JSON response body, if available.
      * @param string|null          $apiCode      The Coinglass envelope `code` field, if present.
      * @param Throwable|null       $previous     Previous exception used for chaining.
+     * @param string|null          $rawBody      Original response body, if available.
      */
     public function __construct(
         string $message,
@@ -26,6 +27,7 @@ class ApiException extends CoinGlassException
         public readonly array $responseBody = [],
         public readonly ?string $apiCode = null,
         ?Throwable $previous = null,
+        public readonly ?string $rawBody = null,
     ) {
         parent::__construct($message, $statusCode, $previous);
     }
@@ -35,10 +37,10 @@ class ApiException extends CoinGlassException
      *
      * @param array<string, mixed> $body
      */
-    public static function fromResponse(int $statusCode, array $body, ?Throwable $previous = null): static
+    public static function fromResponse(int $statusCode, array $body, ?Throwable $previous = null, ?string $rawBody = null): static
     {
         $message = (string) ($body['msg'] ?? $body['message'] ?? "Coinglass API request failed with status {$statusCode}");
 
-        return new static($message, $statusCode, $body, isset($body['code']) ? (string) $body['code'] : null, $previous);
+        return new static($message, $statusCode, $body, isset($body['code']) ? (string) $body['code'] : null, $previous, $rawBody);
     }
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tigusigalpa\CoinGlass\Dto;
 
+use ArrayAccess;
+use LogicException;
+
 /**
  * Generic, read-only DTO wrapping a single Coinglass API response record.
  *
@@ -12,8 +15,10 @@ namespace Tigusigalpa\CoinGlass\Dto;
  * also allowing convenient property-style access (`$dto->openInterestUsd`)
  * and array access (`$dto['openInterestUsd']`) for any key present in the
  * response. The original payload is always available via {@see self::$raw}.
+ *
+ * @implements ArrayAccess<string, mixed>
  */
-final class CoinGlassDto
+final class CoinGlassDto implements ArrayAccess
 {
     /**
      * @param array<string, mixed> $raw The original decoded payload for this record.
@@ -68,5 +73,27 @@ final class CoinGlassDto
     public function toArray(): array
     {
         return $this->raw;
+    }
+
+    public function offsetExists(mixed $offset): bool
+    {
+        return is_string($offset) && array_key_exists($offset, $this->raw);
+    }
+
+    public function offsetGet(mixed $offset): mixed
+    {
+        return is_string($offset) ? ($this->raw[$offset] ?? null) : null;
+    }
+
+    /** @throws LogicException Always: DTOs are immutable. */
+    public function offsetSet(mixed $offset, mixed $value): never
+    {
+        throw new LogicException('CoinGlassDto is immutable.');
+    }
+
+    /** @throws LogicException Always: DTOs are immutable. */
+    public function offsetUnset(mixed $offset): never
+    {
+        throw new LogicException('CoinGlassDto is immutable.');
     }
 }

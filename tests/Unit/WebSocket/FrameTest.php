@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tigusigalpa\CoinGlass\Tests\Unit\WebSocket;
 
 use PHPUnit\Framework\TestCase;
+use Tigusigalpa\CoinGlass\Exceptions\WebSocketException;
 use Tigusigalpa\CoinGlass\WebSocket\Frame;
 
 final class FrameTest extends TestCase
@@ -106,5 +107,28 @@ final class FrameTest extends TestCase
         self::assertSame('', $message['payload']);
 
         fclose($stream);
+    }
+
+    public function test_read_frame_rejects_a_payload_larger_than_the_safety_limit(): void
+    {
+        $stream = $this->memoryStream();
+        fwrite($stream, chr(0x80 | Frame::OP_TEXT));
+        fwrite($stream, chr(127));
+        fwrite($stream, pack('J', (16 << 20) + 1));
+        rewind($stream);
+
+        $this->expectException(WebSocketException::class);
+        Frame::readFrame($stream);
+    }
+
+    public function test_read_message_rejects_an_orphaned_continuation_frame(): void
+    {
+        $stream = $this->memoryStream();
+        fwrite($stream, chr(0x80 | Frame::OP_CONTINUATION));
+        fwrite($stream, chr(0));
+        rewind($stream);
+
+        $this->expectException(WebSocketException::class);
+        Frame::readMessage($stream);
     }
 }

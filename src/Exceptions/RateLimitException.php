@@ -17,13 +17,15 @@ class RateLimitException extends ApiException
      * @param array<string, mixed> $responseBody Decoded JSON response body, if available.
      * @param int|null             $retryAfter   Value of the `Retry-After` header (seconds), if present.
      * @param Throwable|null       $previous     Previous exception used for chaining.
+     * @param string|null          $rawBody      Original response body, if available.
      */
     public function __construct(
         string $message = 'Coinglass API rate limit exceeded.',
         array $responseBody = [],
         public readonly ?int $retryAfter = null,
         ?Throwable $previous = null,
+        ?string $rawBody = null,
     ) {
-        parent::__construct($message, 429, $responseBody, null, $previous);
+        parent::__construct($message, 429, $responseBody, null, $previous, $rawBody);
     }
 }

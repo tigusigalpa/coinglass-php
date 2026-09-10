@@ -150,9 +150,9 @@ final class CoinGlassClient
                     throw $e;
                 }
 
-                $delay = $e->retryAfter ?? (int) ($this->config->retryDelay * (2 ** $attempt));
+                $delay = $e->retryAfter ?? $this->config->retryDelay * (2 ** $attempt);
                 if ($delay > 0) {
-                    usleep((int) ($delay * 1_000_000));
+                    usleep((int) round($delay * 1_000_000));
                 }
 
                 $attempt++;
@@ -190,22 +190,34 @@ final class CoinGlassClient
         $body = [];
         if ($rawBody !== '') {
             try {
+                $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+                if (!is_array($decoded) || !str_starts_with(ltrim($rawBody), '{')) {
+                    throw new ApiException(
+                        'Failed to decode Coinglass API response: expected a JSON object.',
+                        $statusCode,
+                        [],
+                        null,
+                        null,
+                        $rawBody,
+                    );
+                }
+
                 /** @var array<string, mixed> $body */
-                $body = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+                $body = $decoded;
             } catch (JsonException $e) {
                 if ($statusCode >= 200 && $statusCode < 300) {
-                    throw new ApiException('Failed to decode Coinglass API response: ' . $e->getMessage(), $statusCode, [], null, $e);
+                    throw new ApiException('Failed to decode Coinglass API response: ' . $e->getMessage(), $statusCode, [], null, $e, $rawBody);
                 }
                 $body = ['message' => $rawBody];
             }
         }
 
         if ($statusCode === 401) {
-            throw new UnauthorizedException((string) ($body['msg'] ?? $body['message'] ?? 'Unauthorized: invalid or missing Coinglass API key.'), $body);
+            throw new UnauthorizedException((string) ($body['msg'] ?? $body['message'] ?? 'Unauthorized: invalid or missing Coinglass API key.'), $body, null, $rawBody);
         }
 
         if ($statusCode === 404) {
-            throw new NotFoundException((string) ($body['msg'] ?? $body['message'] ?? 'The requested Coinglass resource was not found.'), $body);
+            throw new NotFoundException((string) ($body['msg'] ?? $body['message'] ?? 'The requested Coinglass resource was not found.'), $body, null, $rawBody);
         }
 
         if ($statusCode === 429) {
@@ -213,17 +225,19 @@ final class CoinGlassClient
                 (string) ($body['msg'] ?? $body['message'] ?? 'Coinglass API rate limit exceeded.'),
                 $body,
                 $this->parseRetryAfter($response->getHeaderLine('Retry-After')),
+                null,
+                $rawBody,
             );
         }
 
         if ($statusCode < 200 || $statusCode >= 300) {
-            throw ApiException::fromResponse($statusCode, $body);
+            throw ApiException::fromResponse($statusCode, $body, null, $rawBody);
         }
 
         // 2xx HTTP response: unwrap the {"code","msg","data"} envelope.
         $code = isset($body['code']) ? (string) $body['code'] : '0';
         if ($code !== '0' && $code !== '') {
-            throw ApiException::fromResponse($statusCode, $body);
+            throw ApiException::fromResponse($statusCode, $body, null, $rawBody);
         }
 
         return $body['data'] ?? null;
@@ -231,10 +245,17 @@ final class CoinGlassClient
 
     private function parseRetryAfter(string $header): ?int
     {
-        if ($header === '' || !is_numeric($header)) {
+        $header = trim($header);
+        if ($header === '') {
             return null;
         }
 
-        return (int) $header;
+        if (ctype_digit($header)) {
+            return (int) $header;
+        }
+
+        $timestamp = strtotime($header);
+
+        return $timestamp === false ? null : max(0, $timestamp - time());
     }
 }

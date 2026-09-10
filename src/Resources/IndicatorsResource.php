@@ -31,19 +31,25 @@ final class IndicatorsResource extends AbstractResource
     }
 
     /** Futures basis history. `GET /api/futures/basis/history`. */
-    public function basisHistory(string $symbol, string $interval, ?int $limit = null): mixed
+    public function basisHistory(string $symbol, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/basis/history', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Coinbase premium index. `GET /api/coinbase-premium-index`. */
-    public function coinbasePremiumIndex(?int $limit = null): mixed
+    public function coinbasePremiumIndex(?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
-        return $this->request('/api/coinbase-premium-index', ['limit' => $limit]);
+        return $this->request('/api/coinbase-premium-index', [
+            'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+        ]);
     }
 
     /** Bitcoin rainbow chart. `GET /api/index/bitcoin/rainbow-chart`. */
@@ -59,8 +65,12 @@ final class IndicatorsResource extends AbstractResource
     }
 
     /** Stablecoin market cap history. `GET /api/index/stableCoin-marketCap-history`. */
-    public function stablecoinMarketCap(?int $limit = null): mixed
+    public function stablecoinMarketCap(?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
-        return $this->request('/api/index/stableCoin-marketCap-history', ['limit' => $limit]);
+        return $this->request('/api/index/stableCoin-marketCap-history', [
+            'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+        ]);
     }
 }

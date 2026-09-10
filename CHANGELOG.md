@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added the remaining upstream query filters already supported by `coinglass-go`: time ranges on historical Futures,
+  Options, Spot, and Indicator endpoints; exchange filters; interval filters for arbitrage and whale alerts; and a
+  `whaleAlert()` method with the upstream name. Existing method signatures remain compatible.
+- Added GitHub Actions CI, a focused tests workflow, PCOV coverage artifacts/Codecov upload, CodeQL security scans,
+  and Dependabot checks for Composer and workflow dependencies.
+
 - **WebSocket API support** for Coinglass's real-time streams, under the new `Tigusigalpa\CoinGlass\WebSocket`
   namespace:
   - `CoinGlassWebSocketClient` / `connect()` — connects to `wss://open-ws.coinglass.com/ws-api`, authenticated via
@@ -33,6 +39,16 @@ All notable changes to this project will be documented in this file.
     `websocket` block (`COINGLASS_WS_BASE_URL`, `COINGLASS_WS_CONNECT_TIMEOUT`, `COINGLASS_WS_PING_INTERVAL`).
   - Unit tests covering frame encoding/decoding, message parsing/hydration, channel builders, and WebSocket config
     (`tests/Unit/WebSocket/`).
+
+### Fixed
+
+- `CoinGlassDto` now implements the documented read-only array access; `CoinGlassDto` and
+  `CoinGlassCollection` consistently reject mutation through `ArrayAccess`.
+- API exceptions now retain the original response body in `$rawBody`; `Retry-After` supports both delay seconds and
+  HTTP-date values, and fractional configured retry delays are honored.
+- Hardened the WebSocket transport: complete handshake writes, validation of `Upgrade` / `Connection` headers,
+  bounded handshake/frame/message sizes, protocol validation, and a non-recursive bounded read loop.
+- Raised the minimum Guzzle version to `7.15.5` to exclude known vulnerable releases.
 
 ### Documentation
 

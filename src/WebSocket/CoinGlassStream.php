@@ -90,51 +90,80 @@ final class CoinGlassStream
             throw new WebSocketException('Cannot read from a closed WebSocket stream.');
         }
 
-        $this->maybePing();
-
         $waitSeconds = $timeout ?? $this->config->pingInterval;
-        $sec = (int) floor($waitSeconds);
-        $usec = (int) (($waitSeconds - $sec) * 1_000_000);
-
-        $read = [$this->socket];
-        $write = null;
-        $except = null;
-
-        $ready = @stream_select($read, $write, $except, $sec, $usec);
-        if ($ready === false) {
-            throw new WebSocketException('stream_select() failed while waiting for WebSocket data.');
-        }
-        if ($ready === 0) {
-            return null;
+        if ($waitSeconds < 0) {
+            throw new WebSocketException('WebSocket read timeout cannot be negative.');
         }
 
-        $frame = Frame::readMessage($this->socket);
+        $deadline = microtime(true) + $waitSeconds;
 
-        switch ($frame['opcode']) {
-            case Frame::OP_CLOSE:
+        while (true) {
+            try {
+                $this->maybePing();
+            } catch (WebSocketException $e) {
                 $this->markClosed();
+                throw $e;
+            }
 
+            $remaining = max(0.0, $deadline - microtime(true));
+            $seconds = (int) floor($remaining);
+            $microseconds = (int) round(($remaining - $seconds) * 1_000_000);
+            if ($microseconds === 1_000_000) {
+                $seconds++;
+                $microseconds = 0;
+            }
+
+            $read = [$this->socket];
+            $write = null;
+            $except = null;
+
+            $ready = @stream_select($read, $write, $except, $seconds, $microseconds);
+            if ($ready === false) {
+                $this->markClosed();
+                throw new WebSocketException('stream_select() failed while waiting for WebSocket data.');
+            }
+            if ($ready === 0) {
                 return null;
+            }
 
-            case Frame::OP_PING:
-                Frame::write($this->socket, Frame::OP_PONG, $frame['payload']);
+            // A zero stream timeout means "wait indefinitely" in PHP, so
+            // keep a minimal deadline for a frame that arrives during a poll.
+            self::setTimeout($this->socket, max(0.001, $remaining));
+            try {
+                $frame = Frame::readMessage($this->socket);
+            } catch (WebSocketException $e) {
+                $this->markClosed();
+                throw $e;
+            }
 
-                return $this->read($timeout);
+            switch ($frame['opcode']) {
+                case Frame::OP_CLOSE:
+                    $this->markClosed();
 
-            case Frame::OP_PONG:
-                return $this->read($timeout);
+                    return null;
+
+                case Frame::OP_PING:
+                    try {
+                        Frame::write($this->socket, Frame::OP_PONG, $frame['payload']);
+                    } catch (WebSocketException $e) {
+                        $this->markClosed();
+                        throw $e;
+                    }
+                    continue 2;
+
+                case Frame::OP_PONG:
+                    continue 2;
+            }
+
+            if ($frame['payload'] === 'pong') {
+                continue;
+            }
+
+            $message = Message::fromJson($frame['payload']);
+            if ($message !== null) {
+                return $message;
+            }
         }
-
-        if ($frame['payload'] === 'pong') {
-            return $this->read($timeout);
-        }
-
-        $message = Message::fromJson($frame['payload']);
-        if ($message === null) {
-            return $this->read($timeout);
-        }
-
-        return $message;
     }
 
     /**
@@ -220,5 +249,20 @@ final class CoinGlassStream
         }
 
         Frame::write($this->socket, Frame::OP_TEXT, json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    /** @param resource $socket */
+    private static function setTimeout($socket, float $timeout): void
+    {
+        $timeout = max(0.0, $timeout);
+        $seconds = (int) floor($timeout);
+        $microseconds = (int) round(($timeout - $seconds) * 1_000_000);
+
+        if ($microseconds === 1_000_000) {
+            $seconds++;
+            $microseconds = 0;
+        }
+
+        stream_set_timeout($socket, $seconds, $microseconds);
     }
 }

@@ -19,6 +19,9 @@ use Tigusigalpa\CoinGlass\Exceptions\WebSocketException;
  */
 final class Frame
 {
+    /** Maximum payload size for one frame or reassembled message (16 MiB). */
+    private const MAX_MESSAGE_PAYLOAD = 16 << 20;
+
     public const OP_CONTINUATION = 0x0;
     public const OP_TEXT = 0x1;
     public const OP_BINARY = 0x2;
@@ -35,6 +38,9 @@ final class Frame
     public static function write($socket, int $opcode, string $payload): void
     {
         $length = strlen($payload);
+        if ($length > self::MAX_MESSAGE_PAYLOAD) {
+            throw new WebSocketException('WebSocket message payload is too large.');
+        }
         $header = chr(0x80 | $opcode); // FIN=1
 
         if ($length <= 125) {
@@ -74,6 +80,9 @@ final class Frame
         }
 
         $opcode = $first['opcode'];
+        if ($opcode === self::OP_CONTINUATION) {
+            throw new WebSocketException('Received a WebSocket continuation frame without an initial message.');
+        }
         $payload = $first['payload'];
         $fin = $first['fin'];
 
@@ -81,6 +90,9 @@ final class Frame
             $next = self::readFrame($socket);
             if ($next['opcode'] !== self::OP_CONTINUATION) {
                 throw new WebSocketException('Expected a continuation frame while reassembling a fragmented message.');
+            }
+            if (strlen($payload) + strlen($next['payload']) > self::MAX_MESSAGE_PAYLOAD) {
+                throw new WebSocketException('WebSocket message payload is too large.');
             }
             $payload .= $next['payload'];
             $fin = $next['fin'];
@@ -117,6 +129,18 @@ final class Frame
             /** @var array{1: int} $unpacked */
             $unpacked = unpack('J', $ext);
             $length = $unpacked[1];
+        }
+
+        if (!in_array($opcode, [self::OP_CONTINUATION, self::OP_TEXT, self::OP_BINARY, self::OP_CLOSE, self::OP_PING, self::OP_PONG], true)) {
+            throw new WebSocketException('Received a WebSocket frame with an unsupported opcode.');
+        }
+
+        if ($length < 0 || $length > self::MAX_MESSAGE_PAYLOAD) {
+            throw new WebSocketException('WebSocket frame payload is too large.');
+        }
+
+        if ($opcode >= self::OP_CLOSE && (!$fin || $length > 125)) {
+            throw new WebSocketException('Received an invalid fragmented or oversized WebSocket control frame.');
         }
 
         $maskKey = $masked ? self::readExact($socket, 4) : null;

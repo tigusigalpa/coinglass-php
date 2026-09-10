@@ -39,11 +39,12 @@ final class FuturesResource extends AbstractResource
     }
 
     /** Futures coin markets. `GET /api/futures/coins-markets`. */
-    public function coinsMarkets(?string $symbol = null, ?int $limit = null): mixed
+    public function coinsMarkets(?string $symbol = null, ?int $limit = null, ?string $exchanges = null): mixed
     {
         return $this->request('/api/futures/coins-markets', [
             'symbol' => $symbol,
             'limit' => $limit,
+            'exchanges' => $exchanges,
         ]);
     }
 
@@ -90,13 +91,15 @@ final class FuturesResource extends AbstractResource
     }
 
     /** Open interest by exchange. `GET /api/futures/openInterest/exchange-list`. */
-    public function openInterestExchangeList(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null): mixed
+    public function openInterestExchangeList(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/openInterest/exchange-list', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
             'exchange' => $exchange,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
@@ -113,74 +116,88 @@ final class FuturesResource extends AbstractResource
     }
 
     /** OI-weighted funding rate history. `GET /api/futures/fundingRate/oi-weight-ohlc-history`. */
-    public function fundingRateOiWeighted(string $symbol, string $interval, ?int $limit = null): mixed
+    public function fundingRateOiWeighted(string $symbol, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/fundingRate/oi-weight-ohlc-history', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Funding rate by exchange. `GET /api/futures/fundingRate/exchange-list`. */
-    public function fundingRateExchangeList(string $symbol, ?string $interval = null, ?int $limit = null): mixed
+    public function fundingRateExchangeList(string $symbol, ?string $interval = null, ?int $limit = null, ?string $exchange = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/fundingRate/exchange-list', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
+            'exchange' => $exchange,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Funding rate arbitrage opportunities. `GET /api/futures/fundingRate/arbitrage`. */
-    public function fundingRateArbitrage(?string $symbol = null, ?int $limit = null): mixed
+    public function fundingRateArbitrage(?string $symbol = null, ?int $limit = null, ?string $interval = null): mixed
     {
         return $this->request('/api/futures/fundingRate/arbitrage', [
             'symbol' => $symbol,
             'limit' => $limit,
+            'interval' => $interval,
         ]);
     }
 
     /** Global long/short account ratio history. `GET /api/futures/global-long-short-account-ratio/history`. */
-    public function longShortAccountRatioHistory(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null): mixed
+    public function longShortAccountRatioHistory(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/global-long-short-account-ratio/history', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
             'exchange' => $exchange,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Top trader long/short account ratio history. `GET /api/futures/top-long-short-account-ratio/history`. */
-    public function topLongShortAccountRatio(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null): mixed
+    public function topLongShortAccountRatio(string $symbol, string $interval, ?int $limit = null, ?string $exchange = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/top-long-short-account-ratio/history', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
             'exchange' => $exchange,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Pair liquidation history. `GET /api/futures/liquidation/history`. */
-    public function liquidationHistory(string $symbol, string $pair, string $interval, ?int $limit = null): mixed
+    public function liquidationHistory(string $symbol, string $pair, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/liquidation/history', [
             'symbol' => $symbol,
             'pair' => $pair,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Coin liquidation history. `GET /api/futures/liquidation/aggregated-history`. */
-    public function liquidationAggregatedHistory(string $symbol, string $interval, ?int $limit = null): mixed
+    public function liquidationAggregatedHistory(string $symbol, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/liquidation/aggregated-history', [
             'symbol' => $symbol,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
@@ -219,23 +236,26 @@ final class FuturesResource extends AbstractResource
     }
 
     /** Orderbook heatmap history. `GET /api/futures/orderbook/history`. */
-    public function orderbookHistory(string $symbol, string $exchange, string $interval, ?int $limit = null): mixed
+    public function orderbookHistory(string $symbol, string $exchange, string $interval, ?int $limit = null, ?int $startTime = null, ?int $endTime = null): mixed
     {
         return $this->request('/api/futures/orderbook/history', [
             'symbol' => $symbol,
             'exchange' => $exchange,
             'interval' => $interval,
             'limit' => $limit,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 
     /** Large limit orders. `GET /api/futures/orderbook/large-limit-order`. */
-    public function orderbookLargeOrders(string $symbol, string $exchange, ?int $limit = null): mixed
+    public function orderbookLargeOrders(string $symbol, string $exchange, ?int $limit = null, ?string $interval = null): mixed
     {
         return $this->request('/api/futures/orderbook/large-limit-order', [
             'symbol' => $symbol,
             'exchange' => $exchange,
             'limit' => $limit,
+            'interval' => $interval,
         ]);
     }
 
@@ -251,10 +271,17 @@ final class FuturesResource extends AbstractResource
     }
 
     /** Hyperliquid whale alert feed. `GET /api/hyperliquid/whale-alert`. */
-    public function whaleBuySellHistory(?string $symbol = null, ?int $limit = null): mixed
+    public function whaleBuySellHistory(?string $symbol = null, ?int $limit = null, ?string $interval = null): mixed
+    {
+        return $this->whaleAlert($symbol, $interval, $limit);
+    }
+
+    /** Hyperliquid whale alert feed. `GET /api/hyperliquid/whale-alert`. */
+    public function whaleAlert(?string $symbol = null, ?string $interval = null, ?int $limit = null): mixed
     {
         return $this->request('/api/hyperliquid/whale-alert', [
             'symbol' => $symbol,
+            'interval' => $interval,
             'limit' => $limit,
         ]);
     }
