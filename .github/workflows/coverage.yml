@@ -26,7 +26,7 @@ jobs:
       - name: Generate Clover coverage report
         run: vendor/bin/phpunit --coverage-clover coverage.xml
       - name: Store coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: phpunit-coverage
           path: coverage.xml
