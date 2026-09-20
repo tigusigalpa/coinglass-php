@@ -131,4 +131,80 @@ final class FrameTest extends TestCase
         $this->expectException(WebSocketException::class);
         Frame::readMessage($stream);
     }
+
+    public function test_read_frame_unmasks_a_masked_server_frame(): void
+    {
+        $stream = $this->memoryStream();
+        $payload = 'masked';
+        $maskKey = "\x01\x02\x03\x04";
+        $masked = '';
+
+        for ($i = 0; $i < strlen($payload); $i++) {
+            $masked .= $payload[$i] ^ $maskKey[$i % 4];
+        }
+
+        fwrite($stream, chr(0x80 | Frame::OP_TEXT));
+        fwrite($stream, chr(0x80 | strlen($payload)) . $maskKey . $masked);
+        rewind($stream);
+
+        self::assertSame($payload, Frame::readFrame($stream)['payload']);
+        fclose($stream);
+    }
+
+    public function test_read_frame_supports_a_64_bit_extended_payload_length(): void
+    {
+        $stream = $this->memoryStream();
+        $payload = str_repeat('a', 65_536);
+
+        fwrite($stream, chr(0x80 | Frame::OP_TEXT));
+        fwrite($stream, chr(127) . pack('J', strlen($payload)) . $payload);
+        rewind($stream);
+
+        self::assertSame($payload, Frame::readFrame($stream)['payload']);
+        fclose($stream);
+    }
+
+    public function test_write_handles_both_extended_length_encodings(): void
+    {
+        foreach ([str_repeat('a', 126), str_repeat('b', 65_536)] as $payload) {
+            $stream = $this->memoryStream();
+            Frame::write($stream, Frame::OP_TEXT, $payload);
+            rewind($stream);
+
+            self::assertSame($payload, Frame::readFrame($stream)['payload']);
+            fclose($stream);
+        }
+    }
+
+    public function test_rejects_invalid_opcodes_control_frames_and_fragment_sequences(): void
+    {
+        $unsupported = $this->memoryStream();
+        fwrite($unsupported, chr(0x80 | 0x3) . chr(0));
+        rewind($unsupported);
+        try {
+            Frame::readFrame($unsupported);
+            self::fail('Expected an unsupported opcode to be rejected.');
+        } catch (WebSocketException $exception) {
+            self::assertStringContainsString('unsupported opcode', $exception->getMessage());
+        }
+        fclose($unsupported);
+
+        $fragmentedControl = $this->memoryStream();
+        fwrite($fragmentedControl, chr(Frame::OP_PING) . chr(0));
+        rewind($fragmentedControl);
+        try {
+            Frame::readFrame($fragmentedControl);
+            self::fail('Expected a fragmented control frame to be rejected.');
+        } catch (WebSocketException $exception) {
+            self::assertStringContainsString('control frame', $exception->getMessage());
+        }
+        fclose($fragmentedControl);
+
+        $invalidSequence = $this->memoryStream();
+        fwrite($invalidSequence, chr(Frame::OP_TEXT) . chr(1) . 'a');
+        fwrite($invalidSequence, chr(0x80 | Frame::OP_TEXT) . chr(1) . 'b');
+        rewind($invalidSequence);
+        $this->expectException(WebSocketException::class);
+        Frame::readMessage($invalidSequence);
+    }
 }

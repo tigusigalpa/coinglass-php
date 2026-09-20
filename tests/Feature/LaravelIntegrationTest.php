@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tigusigalpa\CoinGlass\Tests\Feature;
 
 use Tigusigalpa\CoinGlass\CoinGlassClient;
+use Tigusigalpa\CoinGlass\Laravel\CoinGlassServiceProvider;
 use Tigusigalpa\CoinGlass\Laravel\Facades\CoinGlass;
 use Tigusigalpa\CoinGlass\Resources\EtfResource;
 use Tigusigalpa\CoinGlass\Resources\FuturesResource;
+use Tigusigalpa\CoinGlass\WebSocket\CoinGlassWebSocketClient;
 use Tigusigalpa\CoinGlass\Tests\TestCase;
 
 final class LaravelIntegrationTest extends TestCase
@@ -33,5 +35,18 @@ final class LaravelIntegrationTest extends TestCase
     {
         self::assertInstanceOf(FuturesResource::class, CoinGlass::futures());
         self::assertInstanceOf(EtfResource::class, CoinGlass::etf());
+    }
+
+    public function testServiceProviderRegistersTheWebSocketClientAndAdvertisesAllBindings(): void
+    {
+        self::assertInstanceOf(CoinGlassWebSocketClient::class, $this->app->make(CoinGlassWebSocketClient::class));
+
+        $provider = $this->app->getProvider(CoinGlassServiceProvider::class);
+        self::assertInstanceOf(CoinGlassServiceProvider::class, $provider);
+        self::assertSame([
+            CoinGlassClient::class,
+            'coinglass',
+            CoinGlassWebSocketClient::class,
+        ], $provider->provides());
     }
 }

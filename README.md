@@ -1,6 +1,6 @@
 # Coinglass PHP/Laravel Client/SDK/Library
 
-![CoinGlass PHP SDK](https://i.postimg.cc/tJgkghDn/coinglass-php-banner.jpg)
+![CoinGlass PHP Client SDK](https://i.postimg.cc/s2zNMCCn/coinglass-php-laravel-hero.jpg)
 
 [![CI](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/ci.yml)
 [![Tests](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/coinglass-php/actions/workflows/test.yml)
